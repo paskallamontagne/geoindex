@@ -17,7 +17,7 @@ require_once('Stripe/init.php');
 /* Stripe variables */
 $stripe = [
     'publishable' => 'hidden',
-    'private' => 'sk_test_WF9fkU6leAIwl19PXNVDuzQU'
+    'private' => ''
 ];
   
 \Stripe\Stripe::setApiKey($stripe['private']);
@@ -43,9 +43,9 @@ if(isset($_POST['stripeToken'])) {
   $report_name = $_POST["reportname"];
   #echo "<h1>Your payment has been completed. See you space cowboy...$report_name</h1>";
   
-  $servername = "mysql.geoindex.xyz";
-  $username = "geoindex_sqladm";
-  $password = "6aTF5i4NR3nxuqJ95";
+  $servername = "";
+  $username = "";
+  $password = "";
   
   
   
