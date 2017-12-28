@@ -1,0 +1,95 @@
+<html>
+<body>
+
+    <!doctype html>
+    
+      <head>
+        <link rel="stylesheet" href="https://openlayers.org/en/v4.3.4/css/ol.css" type="text/css">
+        <style>
+          .map {
+            height: 400px;
+            width: 100%;
+          }
+        </style>
+        <script src="https://openlayers.org/en/v4.3.4/build/ol.js" type="text/javascript"></script>
+        <title>OpenLayers example</title>
+      </head>
+      
+        <h2>GEODB</h2>
+        <input id="address" type="textbox" value="Sydney, NSW">
+        <input id="submit" type="button" value="Geocode">
+        <div id="map" class="map"></div>
+        <script type="text/javascript">
+          function initMap() {
+        
+            var map = new ol.Map({
+              target: 'map',
+              layers: [
+                new ol.layer.Tile({
+                  source: new ol.source.OSM()
+                })
+              ],
+              view: new ol.View({
+                  
+                  center: ol.proj.fromLonLat([-72.66, 52.62]),
+                  zoom: 4
+              })
+            });
+
+          /**
+        * Add a click handler to the map to render the popup.
+        */
+        map.on('singleclick', function(evt) {
+          var coordinate = evt.coordinate;
+          //var hdms = ol.coordinate.toStringHDMS(ol.proj.transform(
+          //    coordinate, 'EPSG:3857', 'EPSG:4326'));
+              var lonlat = ol.proj.transform(evt.coordinate, 'EPSG:3857', 'EPSG:4326');
+              var lon = lonlat[0];
+              var lat = lonlat[1];
+              document.getElementById('lon').value = lon;
+              document.getElementById('lat').value = lat;
+
+          //alert('<p>You clicked here:</p><code>' + hdms +
+            //  '</code>');
+          
+        });
+
+          var geocoder = new google.maps.Geocoder();
+
+          document.getElementById('submit').addEventListener('click', function() {
+            geocodeAddress(geocoder, map);
+          });
+        }
+
+        function geocodeAddress(geocoder, resultsMap) {
+        var address = document.getElementById('address').value;
+        
+        geocoder.geocode({'address': address}, function(results, status) {
+          if (status === 'OK') {
+            console.log(results[0].geometry.location);
+            //results[0].geometry.location
+           // var foundPosition = new ol.LonLat(results[0].geometry.x, results[0].geometry.y).transform(
+           //             new ol.Projection("EPSG:4326"),
+           //             map.getProjectionObject()
+           //             );
+           // resultsMap.getView().setCenter(foundPosition);
+          } else {
+            alert('Geocode was not successful for the following reason: ' + status);
+          }
+        });
+      }
+
+        </script>
+      
+
+
+<form action="test.php" method="post">
+Longitude: <input type="text" name="lon" id='lon'><br>
+Latitude: <input type="text" name="lat" id='lat'><br>
+<input type="submit">
+</form>
+<script async defer
+src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDeco3PdOJgF342P5Bg8r1M5zX33TZzlg8&callback=initMap">
+</script>
+</body>
+</html>
