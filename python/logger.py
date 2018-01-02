@@ -1,6 +1,11 @@
 from MySQLConnector import Connection
 import sys
 import getopt
+import time
+
+def get_timestamp():
+    date_string = time.strftime("%Y-%m-%d - %H:%M")
+    return date_string
 
 cursor, conn = Connection()
 
@@ -34,21 +39,23 @@ def get_id_update():
     conn.commit()
     return id[0]
 
-def write_log(idupdates, program, entry):
-
+def write_log(idupdates, program, timestamp, entry):
+    timestamp = timestamp
     idupdates = idupdates
     program = program
     entry = entry
 
-    sql_insert_logs = """INSERT INTO contaminated_geoindex_xyz.LOGGER (idLOGS, idUpdate, PROGRAM, ENTRY) VALUES (default, %s, '%s', '%s')""" % (idupdates, program, entry)
+    sql_insert_logs = """INSERT INTO contaminated_geoindex_xyz.LOGGER (idLOGS, idUpdate, PROGRAM, ENTRY) VALUES (default, %s, '%s', '%s: %s')""" % (idupdates, program, timestamp, entry)
     print(sql_insert_logs)
+    print (entry)
     cursor.execute(sql_insert_logs)
     conn.commit()
 
 
 idupdates = get_id_update()
+timestamp = get_timestamp()
 program, entry = main(sys.argv[1:])
-write_log(idupdates, program, entry)
+write_log(idupdates, program, timestamp, entry)
 conn.close()
 
 if __name__ == "__main__":
