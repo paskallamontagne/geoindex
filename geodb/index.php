@@ -141,9 +141,9 @@
       echo "<div id=\"stats-panel\" >";
       
 
-      $servername = "mysql.geoindex.xyz";
-      $username = "geoindex_sqladm";
-      $password = "6aTF5i4NR3nxuqJ95";
+      $servername = "";
+      $username = "";
+      $password = "";
 
       // Create connection
       $conn = new mysqli($servername, $username, $password);
