@@ -2,6 +2,7 @@ from MySQLConnector import Connection
 import sys
 import getopt
 import time
+import argparse
 
 def get_timestamp():
     date_string = time.strftime("%Y-%m-%d - %H:%M")
@@ -10,23 +11,23 @@ def get_timestamp():
 cursor, conn = Connection()
 
 
-def main(argv):
-    program = ''
-    entry = ''
-    try:
-        opts, args = getopt.getopt(argv, "h:p:e:", ["program=", "entry="])
-    except getopt.GetoptError:
-        print('logger.py -p program -e entry')
-        sys.exit(2)
-    for opt, arg in opts:
-        if opt == '-h':
-            print('logger.py -p program -e entry')
-            sys.exit()
-        elif opt in ("-p", "--program"):
-            program = arg
-        elif opt in ("-e", "--entry"):
-            entry = arg
-    return  program, entry
+def main():
+
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("-p", "--program", required=True, help="type string script name")
+    parser.add_argument("-e", "--entry", required=False, help="type string entry description")
+    parser.add_argument("-r", "--error", required=False, help="type string error")
+
+    args = parser.parse_args()
+
+    print("Program {} Entry {} Error {} ".format(
+        args.program,
+        args.entry,
+        args.error
+    ))
+    
+    return args.program, args.entry, args.error
 
 
 def get_id_update():
@@ -39,25 +40,31 @@ def get_id_update():
     conn.commit()
     return id[0]
 
-def write_log(idupdates, program, timestamp, entry):
+def write_log(idupdates, program, timestamp, entry, er):
     timestamp = timestamp
     idupdates = idupdates
     program = program
     entry = entry
+    er = er
 
-    sql_insert_logs = """INSERT INTO contaminated_geoindex_xyz.LOGGER (idLOGS, idUpdate, PROGRAM, ENTRY) VALUES (default, %s, '%s', '%s: %s')""" % (idupdates, program, timestamp, entry)
-    print(sql_insert_logs)
-    print (entry)
+    sql_insert_logs = """INSERT INTO contaminated_geoindex_xyz.LOGGER (idLOGS, idUpdate, PROGRAM, ENTRY, ERROR) VALUES (default, %s, '%s', '%s: %s', '%s:%s')""" % (idupdates, program, timestamp, entry, timestamp,er)
+    print("DEBUG::WRITE_LOG:sql_insert_logs " + sql_insert_logs)
+    print ("DEBUG::WRITE_LOG:entry " + entry)
+    print ("DEBUG::WRITE_LOG:error " + er + "\n")
+    
     cursor.execute(sql_insert_logs)
     conn.commit()
 
 
 idupdates = get_id_update()
 timestamp = get_timestamp()
-program, entry = main(sys.argv[1:])
-write_log(idupdates, program, timestamp, entry)
+program, entry, er = main()
+
+print ("DEBUG::NML:entry " + entry)
+print ("DEBUG::NML:er " + er)
+write_log(idupdates, program, timestamp, entry, er)
 conn.close()
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    main()
 

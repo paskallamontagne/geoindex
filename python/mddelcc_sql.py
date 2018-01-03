@@ -7,11 +7,28 @@ import re
 import datetime
 import os
 from MySQLConnector import Connection
+from logger2 import insertLog
+
+
+def insertLog(cursor, conn, program, entry, er):
+    timestamp = time.strftime("%Y-%m-%d - %H:%M")
+
+    #get current update
+    sql_get_idUpdates = """SELECT idUPDATES FROM UPDATES WHERE LAST_UPDATE_END IS NULL ORDER BY idUPDATES DESC LIMIT 1;"""
+    print("DEBUG:LOG:sql_get_idUpdates: " + sql_get_idUpdates)
+    cursor.execute(sql_get_idUpdates)
+    id = cursor.fetchone()
+    print("DEBUG:LOG:id: " + str(id) ) 
+    conn.commit()
+    idUpdates = id[0]
+
+    sql_insert_logs = """INSERT INTO contaminated_geoindex_xyz.LOGGER (idLOGS, idUpdate, TIMESTAMP,PROGRAM, ENTRY, ERROR) VALUES (default, %s, '%s','%s', '%s', '%s')""" % (idUpdates, timestamp, program, entry,er)
+    print("DEBUG:LOG:sql_insert_logs: " + sql_insert_logs)
+    cursor.execute(sql_insert_logs)
+    conn.commit()
 
 # logging.basicConfig(level=logging.INFO)
-
-
-def open_csv(date_string):
+def open_csv(cursor, conn, date_string):
 
     try:
         # logging.info("Opening file MDDELCC_%s.csv") % (date_string)
@@ -21,13 +38,16 @@ def open_csv(date_string):
         return reader
     except NameError:
         #print("File name error. Check that file was downloaded")
-        os.system(log("\"MDDELCC_SQL.PY:OPEN_CSV\"", "\"File name error. Check that file was downloaded\""))
+        #os.system(log("\"MDDELCC_SQL.PY:OPEN_CSV\"", "","\"File name error. Check that file was downloaded\""))
+        insertLog(cursor, conn, "MDDELCC_SQL.PY:OPEN_CSV", "","File name error. Check that file was downloaded")
+        #insertLog()
     except FileNotFoundError as fnf:
         #print("File not found error.")
-        os.system(log("\"MDDELCC_SQL.PY:OPEN_CSV\"", "\"File not found error.\""))
+        #os.system(log("\"MDDELCC_SQL.PY:OPEN_CSV\"","","\"File not found error.\""))
+        insertLog(cursor, conn, "MDDELCC_SQL.PY:OPEN_CSV","","File not found error.")
 
 
-def list_builder(file, date_string):
+def list_builder(cursor, conn, file, date_string):
 
     # Build a list from csv file
     data = []
@@ -51,13 +71,14 @@ def list_builder(file, date_string):
         except IndexError:
             entry = "Index error on row: " + row
             print(entry)
-            os.system(log("\"MDDELCC_SQL.PY:LIST_BUILDER\"", "\"%s\"")) % entry
+            #os.system(log("\"MDDELCC_SQL.PY:LIST_BUILDER\"", "\"%s\"")) % entry
+            insertLog(cursor, conn, "MDDELCC_SQL.PY:LIST_BUILDER", ""+ entry +"","") 
 
     return data
 
 def record_count():
     
-    conn, cursor = Connection()
+    cursor, conn = Connection()
     url = r'http://www.mddelcc.gouv.qc.ca/sol/terrains/terrains-contamines/resultats.asp?nom_region=*'
     html = requests.get(url).content
     soup = BeautifulSoup(html, 'xml')
@@ -156,7 +177,7 @@ def is_record_identical(item, cursor, conn):
 
 # Add a note to indicate that a duplicate record exists in MDDELCC
 def update_record_note(item, cursor, conn, duplicate):
-    note = "Valider la fiche: %s a l'address %s dans la MRC %s" % (item[0], item[2], item[3])
+    note = "Valider la fiche: %s en duplicata" % (item[0])
 
     # print(note)
 
@@ -206,19 +227,29 @@ def insert_record(item, cursor, conn, rowcount_mddelcc):
         # if duplicate but not identical
         if found_dup >= 1 and found_ident != 1:
             #update_record_note(item, cursor, conn, duplicate)
-            entry = "Valider la fiche: %s a l'address %s dans la MRC %s" % (item[0], item[2], item[3])
-            os.system(log("\"MDDELCC_SQL.PY:INSERT_RECORD\"", "\"%s\"")) % entry
+            error = "Valider la fiche: %s" % (item[0])
+            entry = ""
+            print ("DEBUG::INSERT_RECORD::error " + error)
+            #os.system(log("\"MDDELCC_SQL.PY:INSERT_RECORD\"", "\"" + entry + "\"", "\"" + error + "\""))
+            insertLog(cursor, conn, "MDDELCC_SQL.PY:INSERT_RECORD", entry, error)
+            
         elif found_ident == 1:
             #print("Record", item[0], "already in database")
             entry = "Record " + item[0] + " already in database...skipping"
-            os.system(log("\"MDDELCC_SQL.PY:INSERT_RECORD\"", "\"Record " + item[0] + " already in database...skipping\""))
+            #os.system(log("\"MDDELCC_SQL.PY:INSERT_RECORD\"", "\"Record " + item[0] + " already in database...skipping\"",""))
+            insertLog(cursor, conn, "MDDELCC_SQL.PY:INSERT_RECORD", "Record " + item[0] + " already in database...skipping","")
         else:
             insert()
-def log(program, entry):
+
+def log(program, entry, er):
     program = program
     entry = entry
-    command = "python3 logger.py -p %s -e %s" % (program,entry)
+    er = er 
+    command = "python3 logger.py -p %s -e %s -r %s" % (program, entry, er)
+    print ("DEBUG::LOG::Command " + command)
     return command
+
+
 
 
 def updateSourceResult(strUpdateResult,cursor,conn):
@@ -226,23 +257,29 @@ def updateSourceResult(strUpdateResult,cursor,conn):
     cursor.execute(sqlUpdate)
     conn.commit()
 
+
 def main():
 
     # Connect to database
+    #cursor, conn = Connection()
+    # Connect to database - SET global variables 
     cursor, conn = Connection()
 
     # Generate a date in string format
     date_string = time.strftime("%Y%m%d")
 
-    # 
+
     
-    os.system(log("\"MDDELCC_SQL.PY:MAIN\"", "\"Opening csv file\""))
-    file = open_csv(date_string)
+    #os.system(log("\"MDDELCC_SQL.PY:MAIN\"", "\"Opening csv file\"",""))
+    #os.system(log("\"MDDELCC_SQL.PY:MAIN\"", "\"Opening csv file\"",""))
+    insertLog(cursor, conn, "MDDELCC_SQL.PY:MAIN", "Opening csv file","")
+    file = open_csv(cursor, conn, date_string)
 
     # Build the list
     
-    os.system(log("\"MDDELCC_SQL.PY:MAIN\"", "\"Generating array list\""))
-    mddelcc = list_builder(file, date_string)
+    #os.system(log("\"MDDELCC_SQL.PY:MAIN\"", "\"Generating array list\"",""))
+    insertLog(cursor, conn, "MDDELCC_SQL.PY:MAIN", "Generating array list","")
+    mddelcc = list_builder(cursor, conn, file, date_string)
 
     # Check if DB is empty
     rowcount_mddelcc = is_database_empty(cursor, conn)
@@ -255,17 +292,20 @@ def main():
         # Append new data to DB
         # Remove subtracted records from DB
     
-    os.system(log("\"MDDELCC_SQL.PY:MAIN\"", "\"Interating...\""))
+    #os.system(log("\"MDDELCC_SQL.PY:MAIN\"", "\"Interating...\"",""))
+    insertLog(cursor, conn, "MDDELCC_SQL.PY:MAIN", "Interating...","")
     insertCount = 0     
     for item in mddelcc:
         insert_record(item, cursor, conn, rowcount_mddelcc)
         insertCount += 1
     recordCount = record_count()
     
-    os.system(log("\"MDDELCC_SQL.PY:MAIN\"", "\"done\""))
+    #os.system(log("\"MDDELCC_SQL.PY:MAIN\"", "\"done\"",""))
+    insertLog(cursor, conn, "MDDELCC_SQL.PY:MAIN", "done","")
     strUpdateResult = "Inserted " + insertCount + " records. Source contains " + recordCount + " records" 
 
-    os.system(log("\"MDDELCC_SQL.PY:MAIN\"", "\"Updating table SOURCES with update result\"")) % entry
+    #os.system(log("\"MDDELCC_SQL.PY:MAIN\"", "\"Updating table SOURCES with update result\"",""))
+    insertLog(cursor, conn, "MDDELCC_SQL.PY:MAIN", "Updating table SOURCES with update result","")
     updateSourceResult(strUpdateResult,cursor,conn)
 
     conn.close()
